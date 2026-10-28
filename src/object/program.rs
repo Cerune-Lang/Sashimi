@@ -538,7 +538,6 @@ pub fn render_asm(program: &Program) -> Result<String, ProgramDiagnostic> {
                                 op.asm(|s| {
                                     let symbol = &program.symbols[s.0];
                                     if matches!(op, Operand::Symbol(_))
-                                        && matches!(op, Operand::Symbol(_))
                                         && symbol.linkage == Linkage::External
                                         && program.target == Target::X86_64UnknownLinuxGnu
                                     {
