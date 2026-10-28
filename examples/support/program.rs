@@ -1,6 +1,6 @@
 use sashimi_assembler::{Target, program::*, typed::*};
 
-/// A caller-owned ABI example: SASHIMI never chooses argument registers or stack layout.
+/// A caller-owned ABI example: Sashimi never chooses argument registers or stack layout.
 pub fn example_program(target: Target) -> Program {
     let mut p = Program::new(target);
     let main = p.declare("main", Linkage::Global);
@@ -21,7 +21,7 @@ pub fn example_program(target: Target) -> Program {
     emit(EntryKind::Section(Section::ReadOnlyData));
     emit(EntryKind::Align(6));
     emit(EntryKind::Label(msg));
-    emit(EntryKind::Data(b"SASHIMI typed Program\0".to_vec()));
+    emit(EntryKind::Data(b"Sashimi typed Program\0".to_vec()));
     emit(EntryKind::Section(Section::Text));
     emit(EntryKind::Label(main));
     let mut instruction = |op, args| {

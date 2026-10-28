@@ -2,7 +2,7 @@
 
 [日本語](typed-assembly.ja.md)
 
-Stage 1 [single-instruction API](typed-instructions.en.md) and stage 2 [Program/object/provenance](typed-program.en.md) are implemented. Migrating Cerune to typed construction is next. Scope is the existing x86-64 instruction subset and ELF64/COFF. The Cerune-language port in [SASHIMI #2](https://github.com/Cerune-Lang/SASHIMI/issues/2) is a separate stage.
+Stage 1 [single-instruction API](typed-instructions.en.md) and stage 2 [Program/object/provenance](typed-program.en.md) are implemented. Migrating Cerune to typed construction is next. Scope is the existing x86-64 instruction subset and ELF64/COFF. The Cerune-language port in [Sashimi #2](https://github.com/Cerune-Lang/Sashimi/issues/2) is a separate stage.
 
 ## Purpose and responsibilities
 
@@ -11,8 +11,8 @@ Accept already selected machine instructions as values and produce assembly, obj
 | Owner | Responsibilities |
 | --- | --- |
 | Cerune or another caller | Language semantics, MIR/LIR, instruction selection, ABI, runtime, mapping source locations to OriginId |
-| SASHIMI | Operand/instruction validation, encoding, layout, label resolution, relocations, assembly/ELF/COFF output and generated locations |
-| Linker and executor | Final addresses, external symbol resolution and execution; never invoked implicitly by SASHIMI |
+| Sashimi | Operand/instruction validation, encoding, layout, label resolution, relocations, assembly/ELF/COFF output and generated locations |
+| Linker and executor | Final addresses, external symbol resolution and execution; never invoked implicitly by Sashimi |
 
 ```text
 Caller instruction selection → typed Program + origin IDs
@@ -81,7 +81,7 @@ Do not assign object headers and symbol tables to invented source locations. Ini
 
 ## Diagnostics and compatibility
 
-Typed diagnostics carry phase, reason, EntryId and relevant OriginIds/SymbolIds. Cerune maps these back to NodeId/SourceId/Span. SASHIMI does not fabricate source positions. Preserve `Diagnostic.message` and assembly-line diagnostics at the legacy entry point.
+Typed diagnostics carry phase, reason, EntryId and relevant OriginIds/SymbolIds. Cerune maps these back to NodeId/SourceId/Span. Sashimi does not fabricate source positions. Preserve `Diagnostic.message` and assembly-line diagnostics at the legacy entry point.
 
 Retain existing text padding with 0x90 and data padding with zero. Do not introduce branch relaxation or instruction reordering. Check that internal SymbolId numbering does not change deterministic object symbol ordering.
 
@@ -89,7 +89,7 @@ Retain existing text padding with 0x90 and data padding with zero. Do not introd
 
 | Stage | Change | Verification |
 | --- | --- | --- |
-| 1 | Typed values, validation, direct encoding and assembly rendering in SASHIMI | Known instruction bytes, invalid inputs, typed/text comparison; grow from explicitly bounded cases |
+| 1 | Typed values, validation, direct encoding and assembly rendering in Sashimi | Known instruction bytes, invalid inputs, typed/text comparison; grow from explicitly bounded cases |
 | 2 | Symbols, sections, data, relocations and provenance | Both targets; disjoint/empty ranges, Synthetic, declarations, padding, references and observation invariance |
 | 3 | Migrate Cerune instruction selection and runtime helpers to typed construction | Existing 135 runnable examples, ordinary MIR/SSA, annotations on/off, failure diagnostics, I/O order, external assembler and linked execution |
 | 4 | Remove remaining generated-text parsing and retire migration reference | Every normal generation route emits assembly/object from the same Program; retain compatibility input and independent tests |
@@ -106,6 +106,6 @@ Typed Programs use PLT32 for external calls, jumps and conditional branches, and
 
 ## Coordinating repositories
 
-Use an independent SASHIMI PR for API changes and tests. Pin its published full commit ID in Cerune's Cargo.toml and both Cargo.lock files, and link the SASHIMI PR from the Cerune PR. State explicitly when dependencies remain unmerged.
+Use an independent Sashimi PR for API changes and tests. Pin its published full commit ID in Cerune's Cargo.toml and both Cargo.lock files, and link the Sashimi PR from the Cerune PR. State explicitly when dependencies remain unmerged.
 
 Do not commit sibling-clone path dependencies into shared configuration. Developers must be able to clone only Cerune and fetch its dependency. Document ABI/provenance contract changes in both languages and compare old/new routes before updating the connection.

@@ -2,7 +2,7 @@
 
 [English](typed-assembly.en.md)
 
-段階1の[単一命令API](typed-instructions.ja.md)と段階2の[Program・Object・出自対応](typed-program.ja.md)は実装済みです。Cerune側の型付き構築への移行は後続です。対象は現行x86-64の命令範囲とELF64/COFFです。Cerune言語への移植は[SASHIMI #2](https://github.com/Cerune-Lang/SASHIMI/issues/2)の別段階です。
+段階1の[単一命令API](typed-instructions.ja.md)と段階2の[Program・Object・出自対応](typed-program.ja.md)は実装済みです。Cerune側の型付き構築への移行は後続です。対象は現行x86-64の命令範囲とELF64/COFFです。Cerune言語への移植は[Sashimi #2](https://github.com/Cerune-Lang/Sashimi/issues/2)の別段階です。
 
 ## 目的と責務
 
@@ -11,8 +11,8 @@
 | 担当 | 保持する処理・情報 |
 | --- | --- |
 | Ceruneなどの呼出し元 | 言語意味論、MIR/LIR、命令選択、ABI、runtime、ソース位置とOriginIdの対応 |
-| SASHIMI | 命令とオペランドの検証、符号化、配置、ラベル解決、再配置、ASM/ELF/COFF出力、生成位置 |
-| リンカ・実行器 | 最終アドレス、外部シンボル解決、実行。SASHIMIは暗黙に呼び出さない |
+| Sashimi | 命令とオペランドの検証、符号化、配置、ラベル解決、再配置、ASM/ELF/COFF出力、生成位置 |
+| リンカ・実行器 | 最終アドレス、外部シンボル解決、実行。Sashimiは暗黙に呼び出さない |
 
 ```text
 呼出し元の命令選択 → 型付きProgram + 出自ID
@@ -81,7 +81,7 @@ Objectのヘッダ・シンボル表などを高水準ソースへ無理に帰�
 
 ## 診断と互換性
 
-型付き診断は操作段階、理由、EntryId、関連OriginId・SymbolIdを保持します。Ceruneは対応表からNodeId/SourceId/Spanへ戻します。SASHIMIは架空のソース位置を作りません。既存 `Diagnostic.message` とASM行番号の診断は互換入口で維持します。
+型付き診断は操作段階、理由、EntryId、関連OriginId・SymbolIdを保持します。Ceruneは対応表からNodeId/SourceId/Spanへ戻します。Sashimiは架空のソース位置を作りません。既存 `Diagnostic.message` とASM行番号の診断は互換入口で維持します。
 
 整列は現行のtext用0x90／data用0を明示的に維持し、短い分岐への最適化や命令再配置は導入しません。SymbolIdの内部番号がObjectのシンボル順を変えないよう、現行の決定的な順序も検査します。
 
@@ -89,7 +89,7 @@ Objectのヘッダ・シンボル表などを高水準ソースへ無理に帰�
 
 | 段階 | 変更 | 検証 |
 | --- | --- | --- |
-| 1 | 型付き値・検証・直接符号化・ASM表示をSASHIMIに追加 | 既知の命令バイト、不正入力、型付き／テキスト入力の比較。最初は明示した有限ケースから増やす |
+| 1 | 型付き値・検証・直接符号化・ASM表示をSashimiに追加 | 既知の命令バイト、不正入力、型付き／テキスト入力の比較。最初は明示した有限ケースから増やす |
 | 2 | シンボル・セクション・データ・再配置・出自対応を接続 | 両target、複数範囲・0バイト・Synthetic・宣言・padding・参照、観測有無の不変性 |
 | 3 | Ceruneの命令選択とruntime補助を型付き構築へ移す | 135個の既存実行例、通常MIR/SSA、注釈有無、失敗診断・I/O順・外部ASM・リンク後実行 |
 | 4 | 残ったASM再解析を除去し、移行用旧実装を退役 | 全ての通常生成経路が同じProgramからASM/Objectを出す。互換入口と独立テストを残す |
@@ -106,6 +106,6 @@ Cerune PR #184の失敗注入用Objectで、外部mallocへのjmpがELFのPC32�
 
 ## 両リポジトリでの開発
 
-SASHIMIのAPI変更とテストを独立PRにし、公開された完全なコミットIDをCeruneのCargo.tomlと両Cargo.lockへ反映します。Cerune側PRには対応するSASHIMI PRを記録します。未統合の依存がある間は、その状態を明記します。
+SashimiのAPI変更とテストを独立PRにし、公開された完全なコミットIDをCeruneのCargo.tomlと両Cargo.lockへ反映します。Cerune側PRには対応するSashimi PRを記録します。未統合の依存がある間は、その状態を明記します。
 
 隣接cloneのpath依存を共有設定へコミットしません。開発者はCeruneだけをcloneして依存を取得できます。ABI・出自契約の変更は日英で記録し、旧経路と差分検証してから接続を更新します。

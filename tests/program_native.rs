@@ -62,7 +62,7 @@ fn program_asm_and_object_link_and_execute_with_external_branches() {
         assert!(out.status.success(), "run {extension}: {:?}", out);
         assert_eq!(
             String::from_utf8(out.stdout).unwrap().replace("\r\n", "\n"),
-            "SASHIMI typed Program\n".repeat(3)
+            "Sashimi typed Program\n".repeat(3)
         );
         assert!(out.stderr.is_empty());
     }
