@@ -256,7 +256,12 @@ fn condition(name: &str) -> Option<u8> {
 
 pub(super) fn instruction(line: &str) -> Result<(Vec<u8>, Option<Fixup>), String> {
     let (name, args) = line.split_once(' ').unwrap_or((line, ""));
-    let args = operands(args.trim())?;
+    let raw = args.trim();
+    let indirect = name == "callq" && raw.starts_with('*');
+    let args = operands(if indirect { &raw[1..] } else { raw })?;
+    if name == "callq" && indirect == matches!(args.as_slice(), [Operand::Label(_)]) {
+        return Err("callq requires a label or an explicit indirect operand".into());
+    }
     instruction_operands(name, &args)
 }
 
@@ -372,6 +377,9 @@ fn encode(name: &str, args: &[Operand]) -> Result<(Vec<u8>, Option<Fixup>), Stri
         return Ok((bytes, Some(fixup)));
     }
     if let [operand] = args {
+        if name == "callq" {
+            return modrm(&[], &[0xff], false, 2, operand, false);
+        }
         if name == "pushq" || name == "popq" {
             let r = reg(operand)?;
             if r.vector || r.width != 64 {

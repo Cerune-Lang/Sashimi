@@ -168,6 +168,12 @@ fn typed_and_text_validation_agree_for_operand_combinations() {
             }
         }
         for operands in cases {
+            let indirect = Instruction::new(opcode, operands.clone());
+            if opcode == Opcode::Call && encode_instruction(&indirect).is_ok() {
+                let text = format!(".text\n{}\n", render_instruction(&indirect).unwrap());
+                assert!(assemble(&text, Target::X86_64UnknownLinuxGnu).is_ok());
+                continue;
+            }
             let asm = format!(
                 ".text\n{} {}\n",
                 opcode.mnemonic(),
@@ -310,5 +316,51 @@ fn legacy_symbols_relocations_and_diagnostics_remain_unchanged() {
                 "{source}"
             );
         }
+    }
+}
+
+#[test]
+fn indirect_calls_preserve_register_widths_bytes_and_assembly() {
+    for n in 0..16 {
+        let i = Instruction::new(Opcode::Call, [r(n, Width::Qword)]);
+        let mut expected = vec![];
+        if n >= 8 {
+            expected.push(0x41);
+        }
+        expected.extend([0xff, 0xd0 | (n & 7)]);
+        assert_eq!(encode_instruction(&i).unwrap(), expected);
+        let asm = render_instruction(&i).unwrap();
+        assert!(asm.starts_with("callq *%"));
+        for target in [Target::X86_64UnknownLinuxGnu, Target::X86_64PcWindowsMsvc] {
+            let mut p = crate::program::Program::new(target);
+            p.push(
+                crate::program::EntryKind::Section(crate::program::Section::Text),
+                crate::program::Provenance::synthetic(),
+            );
+            p.push(
+                crate::program::EntryKind::Instruction(i.clone()),
+                crate::program::Provenance::synthetic(),
+            );
+            let text = crate::program::render_asm(&p).unwrap();
+            assert!(text.contains(&asm));
+            assert_eq!(
+                crate::program::assemble_program(&p).unwrap().object,
+                assemble(&text, target).unwrap()
+            );
+        }
+    }
+    let i = Instruction::new(Opcode::Call, [mem(12, None, 8)]);
+    assert_eq!(encode_instruction(&i).unwrap(), [0x41, 0xff, 0x54, 0x24, 8]);
+    assert_eq!(render_instruction(&i).unwrap(), "callq *8(%r12)");
+    for op in [
+        r(0, Width::Byte),
+        r(0, Width::Dword),
+        x(0),
+        Operand::Immediate(0),
+    ] {
+        assert!(encode_instruction(&Instruction::new(Opcode::Call, [op])).is_err());
+    }
+    for text in ["callq %rax", "callq *symbol", "callq *%eax"] {
+        assert!(assemble(&format!(".text\n{text}\n"), Target::X86_64UnknownLinuxGnu).is_err());
     }
 }

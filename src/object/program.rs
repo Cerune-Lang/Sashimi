@@ -522,6 +522,14 @@ pub fn render_asm(program: &Program) -> Result<String, ProgramDiagnostic> {
                 text.push_str(instruction.opcode.mnemonic());
                 if !instruction.operands.is_empty() {
                     text.push(' ');
+                    if instruction.opcode == crate::typed::Opcode::Call
+                        && !matches!(
+                            instruction.operands.as_slice(),
+                            [crate::typed::Operand::Symbol(_)]
+                        )
+                    {
+                        text.push('*');
+                    }
                     text.push_str(
                         &instruction
                             .operands
@@ -530,6 +538,7 @@ pub fn render_asm(program: &Program) -> Result<String, ProgramDiagnostic> {
                                 op.asm(|s| {
                                     let symbol = &program.symbols[s.0];
                                     if matches!(op, Operand::Symbol(_))
+                                        && matches!(op, Operand::Symbol(_))
                                         && symbol.linkage == Linkage::External
                                         && program.target == Target::X86_64UnknownLinuxGnu
                                     {

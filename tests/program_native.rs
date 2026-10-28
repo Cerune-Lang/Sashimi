@@ -68,3 +68,78 @@ fn program_asm_and_object_link_and_execute_with_external_branches() {
     }
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+#[cfg(all(
+    target_arch = "x86_64",
+    any(target_os = "linux", target_os = "windows")
+))]
+fn indirect_register_call_executes_from_both_artifacts() {
+    use sashimi_assembler::{Target, program::*, typed::*};
+    let Some(clang) = std::env::var_os("SASHIMI_TEST_CLANG") else {
+        eprintln!("indirect-call execution skipped; set SASHIMI_TEST_CLANG");
+        return;
+    };
+    let target = if cfg!(windows) {
+        Target::X86_64PcWindowsMsvc
+    } else {
+        Target::X86_64UnknownLinuxGnu
+    };
+    let mut p = Program::new(target);
+    let main = p.declare("main", Linkage::Global);
+    let callee = p.declare("callee", Linkage::Local);
+    let r = |n| Operand::from(Register::gpr(n, Width::Qword).unwrap());
+    for e in [
+        EntryKind::Section(Section::Text),
+        EntryKind::Label(main),
+        EntryKind::Instruction(Instruction::new(
+            Opcode::Sub64,
+            [Operand::Immediate(40), r(4)],
+        )),
+        EntryKind::Instruction(Instruction::new(
+            Opcode::Lea64,
+            [Operand::RipRelative(callee), r(11)],
+        )),
+        EntryKind::Instruction(Instruction::new(Opcode::Call, [r(11)])),
+        EntryKind::Instruction(Instruction::new(
+            Opcode::Add64,
+            [Operand::Immediate(40), r(4)],
+        )),
+        EntryKind::Instruction(Instruction::new(Opcode::Ret, [])),
+        EntryKind::Label(callee),
+        EntryKind::Instruction(Instruction::new(
+            Opcode::Mov64,
+            [Operand::Immediate(17), r(0)],
+        )),
+        EntryKind::Instruction(Instruction::new(Opcode::Ret, [])),
+    ] {
+        p.push(e, Provenance::synthetic());
+    }
+    let dir = std::env::temp_dir().join(format!("sashimi-indirect-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("program.o"), assemble_program(&p).unwrap().object).unwrap();
+    std::fs::write(dir.join("program.s"), render_asm(&p).unwrap()).unwrap();
+    for ext in ["o", "s"] {
+        let exe = dir.join(format!("program-{ext}.exe"));
+        let out = std::process::Command::new(&clang)
+            .arg(dir.join(format!("program.{ext}")))
+            .arg("-o")
+            .arg(&exe)
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert_eq!(
+            std::process::Command::new(exe)
+                .output()
+                .unwrap()
+                .status
+                .code(),
+            Some(17)
+        );
+    }
+    std::fs::remove_dir_all(dir).unwrap();
+}
