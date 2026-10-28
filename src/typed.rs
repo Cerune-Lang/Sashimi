@@ -350,7 +350,14 @@ pub fn render_instruction(instruction: &Instruction) -> Result<String, Diagnosti
     let args = instruction
         .operands
         .iter()
-        .map(|op| op.asm(|_| unreachable!()))
+        .map(|op| {
+            let text = op.asm(|_| unreachable!());
+            if instruction.opcode == Opcode::Call {
+                format!("*{text}")
+            } else {
+                text
+            }
+        })
         .collect::<Vec<_>>()
         .join(", ");
     Ok(if args.is_empty() {

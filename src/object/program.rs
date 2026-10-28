@@ -522,6 +522,14 @@ pub fn render_asm(program: &Program) -> Result<String, ProgramDiagnostic> {
                 text.push_str(instruction.opcode.mnemonic());
                 if !instruction.operands.is_empty() {
                     text.push(' ');
+                    if instruction.opcode == crate::typed::Opcode::Call
+                        && !matches!(
+                            instruction.operands.as_slice(),
+                            [crate::typed::Operand::Symbol(_)]
+                        )
+                    {
+                        text.push('*');
+                    }
                     text.push_str(
                         &instruction
                             .operands

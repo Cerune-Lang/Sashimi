@@ -53,3 +53,5 @@ Opcodeが選ぶ固定の命令名と型付きオペランドを、既存の検�
 原本との一致は共通する不具合がないことの証明ではありません。12例の期待バイトはLLVMアセンブラでも確認しています。旧テキスト入力の外部jmpのPIE制約は残ります。新しい[Program API](typed-program.ja.md)は外部分岐のPLT32を実装・検証しています。
 
 切り出し原本は[固定fixture](../../tests/fixtures/extraction/README.md)に保存しています。SOURCE_SNAPSHOT.jsonのハッシュは変更せず、検証先だけを固定fixtureへ移しました。
+
+callはSymbolへの直接呼出しに加え、64bit汎用レジスタ／メモリへの間接呼出しに対応します。型付きのCallとオペランドからFF /2を生成し、ASMではcallq *%rax等と表示します。OSのABIと呼出し先の有効性は利用側の責務です。

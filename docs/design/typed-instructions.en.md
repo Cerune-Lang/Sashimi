@@ -53,3 +53,5 @@ Pass the fixed mnemonic selected by Opcode and typed operands directly to existi
 Agreement with the extraction cannot rule out shared bugs. The twelve byte expectations were also checked with LLVM's assembler. The legacy text API retains its external-jump PIE limitation. The [Program API](typed-program.en.md) implements and tests PLT32 for external branches.
 
 Original sources live in [fixed fixtures](../../tests/fixtures/extraction/README.en.md). SOURCE_SNAPSHOT.json hashes are unchanged; verification now targets the fixtures.
+
+Call supports both direct Symbol calls and indirect calls through 64-bit GPRs/memory. Typed Call operands encode FF /2 and render as callq *%rax, for example. The caller remains responsible for the OS ABI and target validity.
