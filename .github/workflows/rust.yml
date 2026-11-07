@@ -20,6 +20,10 @@ jobs:
           python-version: "3.x"
       - name: Verify original Cerune source fixtures
         run: python scripts/verify_snapshot.py
+      - name: Check documentation links and translations
+        run: |
+          node scripts/check-docs.cjs
+          node --test scripts/check-docs.test.cjs
       - name: Check formatting
         run: cargo fmt --check
       - name: Run Rust tests

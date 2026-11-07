@@ -23,7 +23,7 @@ assert_eq!(encode_instruction(&instruction)?,
 # Ok::<(), sashimi_assembler::Diagnostic>(())
 ```
 
-オペランド順はAT&Tと同じく入力側が先、出力側が後です。汎用レジスタ番号0〜7はRAX/RCX/RDX/RBX/RSP/RBP/RSI/RDI、8〜15はR8〜R15です。Widthで対応する8/32/64bitを選びます。XMMは別の `Register::xmm` で作ります。AHなど上位8bitレジスタは未対応です。
+オペランド順はAT&Tと同じく入力側が先、出力側が後です。汎用レジスタ番号0〜7はRAX/RCX/RDX/RBX/RSP/RBP/RSI/RDI、8〜15はR8〜R15です。Widthでは8/16/32/64bitを指定できます。ただし16bit幅の対応は現時点で`inb`／`outb`のポート指定に用いる`DX`に限り、一般的な16bit命令は未対応です。XMMは別の `Register::xmm` で作ります。AHなど上位8bitレジスタは未対応です。
 
 `Memory::new(base, index, displacement)` は64bit汎用レジスタのbase、省略可能な(index, Scale)、i32変位を受け取ります。倍率は1/2/4/8。RSPをindexにする指定や、32bit・XMMのアドレスレジスタは拒否します。R12はindexとして利用できます。
 
@@ -32,7 +32,7 @@ assert_eq!(encode_instruction(&instruction)?,
 | 実装済み | 内容 |
 | --- | --- |
 | 型 | Opcode、Instruction、Operand、Register、Width、Memory、Scale |
-| 82個の参照なしOpcode | mov・整数演算・比較・シフト・setcc・SSE・変換・push/pop・ret/cqto/ud2・int $0x29。[正確な列挙](../../src/typed.rs) |
+| 型付きOpcode | mov・整数演算・比較・シフト・setcc・SSE・変換・push/pop・ret/cqto/ud2・int $0x29と、AL/DXを用いる`inb`／`outb`。[正確な列挙](../../src/typed.rs) |
 | 直接符号化 | レジスタ、即値、base/indexメモリ。ASM文字列・パーサーを経由しない |
 | ASM表示 | 検証後に表示。入力を変更しない |
 | 診断 | 不正なレジスタ番号・幅・形式・即値を拒否し、既存Diagnosticで理由を返す |
@@ -41,11 +41,17 @@ call/jmp/jcc・RIP相対・セクション・ラベル・データ・Object・Or
 
 単一命令はx86-64 ISAのバイト列であり、OSのABIやObject形式を選びません。そのためTarget引数はありません。Program/Objectは明示Targetを必須にします。戻り値を実行するAPIは設けません。
 
+## ベアメタル向けポートI/O
+
+`Opcode::Out8`はAT&T構文の`AL, DX`だけを受け入れて`EE`を、`Opcode::In8`は`DX, AL`だけを受け入れて`EC`を生成します。これらはx86-64のハードウェアI/O命令であり、**通常のOSサービスではありません**。実行には適切な特権またはI/O許可が必要です。Sashimiはシリアルコントローラの初期化やCerune言語の公開intrinsicを提供しません。即値ポート、16/32bitデータ転送、汎用的な16bit命令は対象外です。
+
+他の型付き命令と同様に、呼出し元が付与した出自情報は生成する機械語バイトと独立に保持します。適切なベアメタル環境外でこれらの命令を実行するテストは行いません。
+
 ## 共有処理と検証
 
 Opcodeが選ぶ固定の命令名と型付きオペランドを、既存の検証・符号化関数へ直接渡します。任意の命令文字列を受け取る入口はありません。従来のテキスト入口は解析後に同じ関数へ進みます。ASM表示も検証するため、誤った命令を成功として表示しません。
 
-- 参照なし82Opcodeすべてに有効例を置き、原本と両Object形式で照合。
+- 従来の参照なしOpcodeは原本と両Object形式で照合。新しいポートI/O命令は原本の対象外とし、独立した期待バイト・Object・出自不変性のテストで検証。
 - 9,200組の命令・オペランド構成で、原本との受理／拒否・符号化結果を比較。
 - 12例の独立した期待バイト、REX/SIB・即値・変位の境界、不正な幅、全汎用レジスタ番号を検査。
 - 表示・符号化を繰り返しても入力と結果が変わらず、既存ラベル・再配置・診断が保たれることを検査。

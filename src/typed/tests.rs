@@ -132,7 +132,9 @@ fn representative(opcode: Opcode) -> Vec<Operand> {
 #[test]
 fn every_opcode_has_a_valid_case_matching_the_extraction() {
     for &opcode in Opcode::ALL {
-        if opcode.mnemonic().starts_with('j') || opcode == Opcode::Call {
+        if opcode.mnemonic().starts_with('j')
+            || matches!(opcode, Opcode::Call | Opcode::In8 | Opcode::Out8)
+        {
             continue;
         }
         check(opcode, representative(opcode));
@@ -153,6 +155,10 @@ fn typed_and_text_validation_agree_for_operand_combinations() {
         Operand::Immediate(i128::MAX),
     ];
     for &opcode in Opcode::ALL {
+        // New hardware I/O forms are intentionally absent from the frozen Cerune extraction.
+        if matches!(opcode, Opcode::In8 | Opcode::Out8) {
+            continue;
+        }
         let mut cases = vec![
             vec![],
             vec![
@@ -272,6 +278,7 @@ fn range_edges_and_repeated_observation_preserve_input_and_bytes() {
         for n in 0..16 {
             let opcode = match width {
                 Width::Byte => Opcode::Mov8,
+                Width::Word => unreachable!("word registers are reserved for port I/O"),
                 Width::Dword => Opcode::Mov32,
                 Width::Qword => Opcode::Mov64,
             };
@@ -362,5 +369,63 @@ fn indirect_calls_preserve_register_widths_bytes_and_assembly() {
     }
     for text in ["callq %rax", "callq *symbol", "callq *%eax"] {
         assert!(assemble(&format!(".text\n{text}\n"), Target::X86_64UnknownLinuxGnu).is_err());
+    }
+}
+
+#[test]
+fn port_io_encodes_only_the_explicit_al_dx_forms() {
+    use crate::program::{EntryKind, OriginId, Program, Provenance, Section};
+
+    let al = r(0, Width::Byte);
+    let dx = r(2, Width::Word);
+    for (opcode, args, text, bytes) in [
+        (
+            Opcode::In8,
+            vec![dx.clone(), al.clone()],
+            "inb %dx, %al",
+            vec![0xec],
+        ),
+        (
+            Opcode::Out8,
+            vec![al.clone(), dx.clone()],
+            "outb %al, %dx",
+            vec![0xee],
+        ),
+    ] {
+        let input = Instruction::new(opcode, args);
+        assert_eq!(encode_instruction(&input).unwrap(), bytes);
+        assert_eq!(render_instruction(&input).unwrap(), text);
+
+        for target in [Target::X86_64UnknownLinuxGnu, Target::X86_64PcWindowsMsvc] {
+            let mut program = Program::new(target);
+            program.push(EntryKind::Section(Section::Text), Provenance::synthetic());
+            program.push(
+                EntryKind::Instruction(input.clone()),
+                Provenance::source(OriginId(7)),
+            );
+            let observed = crate::program::assemble_program(&program).unwrap();
+            let range = observed.entries[1].range.unwrap();
+            assert_eq!((range.start, range.end), (0, 1));
+            assert_eq!(
+                observed.object,
+                assemble(&format!(".text\n{text}\n"), target).unwrap()
+            );
+            program.entries[1].provenance = Provenance::synthetic();
+            assert_eq!(
+                crate::program::assemble_program(&program).unwrap().object,
+                observed.object
+            );
+        }
+    }
+
+    for bad in [
+        Instruction::new(Opcode::Out8, [r(1, Width::Byte), dx.clone()]),
+        Instruction::new(Opcode::Out8, [al.clone(), r(2, Width::Dword)]),
+        Instruction::new(Opcode::In8, [r(3, Width::Word), al.clone()]),
+        Instruction::new(Opcode::In8, [dx.clone(), r(1, Width::Byte)]),
+        Instruction::new(Opcode::Out8, [al.clone(), Operand::Immediate(0xe9)]),
+    ] {
+        assert!(encode_instruction(&bad).is_err(), "{bad:?}");
+        assert!(render_instruction(&bad).is_err(), "{bad:?}");
     }
 }

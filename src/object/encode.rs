@@ -43,6 +43,7 @@ fn register(text: &str) -> Result<Register, String> {
     }
     for (width, names) in [
         (64, ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi"]),
+        (16, ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]),
         (32, ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"]),
         (8, ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil"]),
     ] {
@@ -289,6 +290,15 @@ fn validate(name: &str, args: &[Operand]) -> Result<(), String> {
     let immediate = |op: &Operand| matches!(op, Operand::Immediate(_));
     let valid = if let [a, b] = args {
         match name {
+            // Port I/O uses implicit AL and DX: no other register pair is legal.
+            "inb" => {
+                matches!(a, Operand::Register(r) if !r.vector && r.code == 2 && r.width == 16)
+                    && matches!(b, Operand::Register(r) if !r.vector && r.code == 0 && r.width == 8)
+            }
+            "outb" => {
+                matches!(a, Operand::Register(r) if !r.vector && r.code == 0 && r.width == 8)
+                    && matches!(b, Operand::Register(r) if !r.vector && r.code == 2 && r.width == 16)
+            }
             "movabsq" => immediate(a) && gp(b, 64),
             "movzbq" | "movzbl" => {
                 (gp(a, 8) || memory(a)) && gp(b, if name == "movzbq" { 64 } else { 32 })
@@ -343,6 +353,13 @@ fn validate(name: &str, args: &[Operand]) -> Result<(), String> {
 }
 
 fn encode(name: &str, args: &[Operand]) -> Result<(Vec<u8>, Option<Fixup>), String> {
+    // validate() has checked the fixed-register AL/DX forms.
+    if name == "inb" {
+        return Ok((vec![0xec], None));
+    }
+    if name == "outb" {
+        return Ok((vec![0xee], None));
+    }
     if name == "int" && matches!(args, [Operand::Immediate(0x29)]) {
         return Ok((vec![0xcd, 0x29], None));
     }
