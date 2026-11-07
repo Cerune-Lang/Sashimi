@@ -148,6 +148,8 @@ Cerune **now builds a typed Sashimi `Program` from native LIR and produces ASM a
 
 ## Design and roadmap
 
+[Documentation index and bilingual/link checks](docs/README.en.md)
+
 - [Typed assembly and generated locations](docs/design/typed-assembly.en.md)
 - [Typed single-instruction API](docs/design/typed-instructions.en.md)
 - [Program/object/provenance API](docs/design/typed-program.en.md)
