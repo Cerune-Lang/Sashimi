@@ -379,8 +379,18 @@ fn port_io_encodes_only_the_explicit_al_dx_forms() {
     let al = r(0, Width::Byte);
     let dx = r(2, Width::Word);
     for (opcode, args, text, bytes) in [
-        (Opcode::In8, vec![dx.clone(), al.clone()], "inb %dx, %al", vec![0xec]),
-        (Opcode::Out8, vec![al.clone(), dx.clone()], "outb %al, %dx", vec![0xee]),
+        (
+            Opcode::In8,
+            vec![dx.clone(), al.clone()],
+            "inb %dx, %al",
+            vec![0xec],
+        ),
+        (
+            Opcode::Out8,
+            vec![al.clone(), dx.clone()],
+            "outb %al, %dx",
+            vec![0xee],
+        ),
     ] {
         let input = Instruction::new(opcode, args);
         assert_eq!(encode_instruction(&input).unwrap(), bytes);
@@ -389,7 +399,10 @@ fn port_io_encodes_only_the_explicit_al_dx_forms() {
         for target in [Target::X86_64UnknownLinuxGnu, Target::X86_64PcWindowsMsvc] {
             let mut program = Program::new(target);
             program.push(EntryKind::Section(Section::Text), Provenance::synthetic());
-            program.push(EntryKind::Instruction(input.clone()), Provenance::source(OriginId(7)));
+            program.push(
+                EntryKind::Instruction(input.clone()),
+                Provenance::source(OriginId(7)),
+            );
             let observed = crate::program::assemble_program(&program).unwrap();
             let range = observed.entries[1].range.unwrap();
             assert_eq!((range.start, range.end), (0, 1));
@@ -398,7 +411,10 @@ fn port_io_encodes_only_the_explicit_al_dx_forms() {
                 assemble(&format!(".text\\n{text}\\n"), target).unwrap()
             );
             program.entries[1].provenance = Provenance::synthetic();
-            assert_eq!(crate::program::assemble_program(&program).unwrap().object, observed.object);
+            assert_eq!(
+                crate::program::assemble_program(&program).unwrap().object,
+                observed.object
+            );
         }
     }
 
