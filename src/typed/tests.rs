@@ -408,7 +408,7 @@ fn port_io_encodes_only_the_explicit_al_dx_forms() {
             assert_eq!((range.start, range.end), (0, 1));
             assert_eq!(
                 observed.object,
-                assemble(&format!(".text\\n{text}\\n"), target).unwrap()
+                assemble(&format!(".text\n{text}\n"), target).unwrap()
             );
             program.entries[1].provenance = Provenance::synthetic();
             assert_eq!(
