@@ -43,6 +43,7 @@ fn register(text: &str) -> Result<Register, String> {
     }
     for (width, names) in [
         (64, ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi"]),
+        (16, ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]),
         (32, ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"]),
         (8, ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil"]),
     ] {
