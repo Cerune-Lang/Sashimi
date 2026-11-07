@@ -148,6 +148,8 @@ Ceruneは、**NativeのLIRからSashimiの型付き`Program`を構築し、同�
 
 ## 設計・今後の計画
 
+[文書一覧と日英ペア・リンク検査](docs/README.md)
+
 - [型付き機械命令と生成位置の設計](docs/design/typed-assembly.ja.md)
 - [型付き単一命令API](docs/design/typed-instructions.ja.md)
 - [Program・Object・出自対応API](docs/design/typed-program.ja.md)
