@@ -290,10 +290,14 @@ fn validate(name: &str, args: &[Operand]) -> Result<(), String> {
     let valid = if let [a, b] = args {
         match name {
             // Port I/O uses implicit AL and DX: no other register pair is legal.
-            "inb" => matches!(a, Operand::Register(r) if !r.vector && r.code == 2 && r.width == 16)
-                && matches!(b, Operand::Register(r) if !r.vector && r.code == 0 && r.width == 8),
-            "outb" => matches!(a, Operand::Register(r) if !r.vector && r.code == 0 && r.width == 8)
-                && matches!(b, Operand::Register(r) if !r.vector && r.code == 2 && r.width == 16),
+            "inb" => {
+                matches!(a, Operand::Register(r) if !r.vector && r.code == 2 && r.width == 16)
+                    && matches!(b, Operand::Register(r) if !r.vector && r.code == 0 && r.width == 8)
+            }
+            "outb" => {
+                matches!(a, Operand::Register(r) if !r.vector && r.code == 0 && r.width == 8)
+                    && matches!(b, Operand::Register(r) if !r.vector && r.code == 2 && r.width == 16)
+            }
             "movabsq" => immediate(a) && gp(b, 64),
             "movzbq" | "movzbl" => {
                 (gp(a, 8) || memory(a)) && gp(b, if name == "movzbq" { 64 } else { 32 })
