@@ -20,6 +20,7 @@ use crate::{Diagnostic, object::encode, program::SymbolId};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Width {
     Byte,
+    Word,
     Dword,
     Qword,
 }
@@ -27,6 +28,7 @@ impl Width {
     fn bits(self) -> u8 {
         match self {
             Self::Byte => 8,
+            Self::Word => 16,
             Self::Dword => 32,
             Self::Qword => 64,
         }
@@ -74,6 +76,7 @@ impl Register {
                 self.number,
                 match self.width {
                     8 => "b",
+                    16 => "w",
                     32 => "d",
                     _ => "",
                 }
@@ -81,6 +84,7 @@ impl Register {
         }
         let names = match self.width {
             8 => ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil"],
+            16 => ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"],
             32 => ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"],
             _ => ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi"],
         };
@@ -219,6 +223,8 @@ opcodes! {
     JumpLe => "jle",
     JumpG => "jg",
     Interrupt => "int",
+    In8 => "inb",
+    Out8 => "outb",
     Ret => "retq",
     SignExtendRax => "cqto",
     Undefined => "ud2",
